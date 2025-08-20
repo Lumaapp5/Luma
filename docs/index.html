@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Luma — Demo</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 16px}
+    #log{border:1px solid #ddd;border-radius:8px;padding:12px;height:300px;overflow:auto;margin-top:10px;background:#fafafa}
+    #form{display:flex;gap:8px;margin-top:12px}
+    input,button{font-size:16px;padding:10px}
+    input{flex:1}
+    .muted{color:#666;font-size:14px}
+  </style>
+</head>
+<body>
+  <h1>Luma Social (Demo)</h1>
+  <p class="muted">Backend: <code>http://localhost:4000</code> | Frontend: <code>http://localhost:3000</code></p>
+
+  <div id="log">Loading messages…</div>
+
+  <form id="form">
+    <input id="msg" placeholder="Type your message..." />
+    <button type="submit">Send</button>
+  </form>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script>
+    const api = "http://localhost:4000";
+    const log = document.getElementById("log");
+    const form = document.getElementById("form");
+    const msgInput = document.getElementById("msg");
+
+    function append(m){
+      const p = document.createElement("p");
+      p.textContent = (new Date(m.createdAt)).toLocaleTimeString() + " — " + m.text;
+      log.appendChild(p);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    fetch(api + "/api/messages").then(r=>r.json()).then(list=>{
+      log.innerHTML = "";
+      list.reverse().forEach(append);
+    }).catch(()=>{
+      log.textContent = "API not reachable. Make sure Docker is running.";
+    });
+
+    const socket = io(api);
+    socket.on("new-message", append);
+
+    form.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const text = msgInput.value.trim();
+      if(!text) return;
+      socket.emit("send-message", text);
+      msgInput.value = "";
+      msgInput.focus();
+    });
+  </script>
+</body>
+</html>
